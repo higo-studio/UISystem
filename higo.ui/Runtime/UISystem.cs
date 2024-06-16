@@ -32,32 +32,46 @@ namespace Higo.UI
         protected static UISystem m_Instance;
         public static UISystem Instance => m_Instance;
 
-        private void Start()
+        private void OnEnable()
         {
-            var childCount = transform.childCount;
-            for (var i = 0; i < childCount; i++)
-            {
-                var child = transform.GetChild(i);
-                m_Layers.Add(new()
-                {
-                    Root = child
-                });
-            }
+            register();
         }
 
-        private void OnEnable()
+        private void OnDisable()
+        {
+            unregister();
+        }
+
+        private void register()
         {
             if (m_Instance == null)
             {
+                var childCount = transform.childCount;
+                for (var i = 0; i < childCount; i++)
+                {
+                    var child = transform.GetChild(i);
+                    m_Layers.Add(new()
+                    {
+                        Root = child
+                    });
+                }
                 m_Instance = this;
                 DontDestroyOnLoad(m_Instance.gameObject);
             }
         }
 
-        private void OnDisable()
+        private void unregister()
         {
             if (m_Instance == this)
             {
+                m_Layers.Clear();
+                m_Instances.Clear();
+                m_Loaded.Clear();
+                m_Loading.Clear();
+                m_UUIDGenerator = 0;
+                m_Depth = 0;
+                m_DelayProcessingUIPanelDatas.Clear();
+                
                 var scene = SceneManager.GetActiveScene();
                 if (scene.isLoaded)
                 {
@@ -67,7 +81,7 @@ namespace Higo.UI
             }
         }
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         public static void EnsureCreation()
         {
             if (m_Instance != null)
@@ -78,12 +92,14 @@ namespace Higo.UI
             if (settings != null && settings.Prefab != null)
             {
                 m_Instance = Instantiate(settings.Prefab);
+                m_Instance.name = "UI System";
             }
             else
             {
                 var go = new GameObject("UI System");
                 m_Instance = go.AddComponent<UISystem>();
             }
+            m_Instance.register();
         }
 
         public bool TryFindUUID(int layerIndex, string path, out UIUUID uuid)
@@ -210,6 +226,7 @@ namespace Higo.UI
 
         private GameObject doInstantiate(int layerIndex, UIUUID uuid, GameObject asset)
         {
+            if (asset == null) return null;
             var instance = Instantiate(asset, m_Layers[layerIndex].Root);
             m_Instances[uuid] = instance;
             var initComp = instance.GetComponent<IUIPanelInit>();
@@ -223,6 +240,7 @@ namespace Higo.UI
 
         private GameObject doInstantiateWithOnShow(int layerIndex, UIUUID uuid, GameObject asset)
         {
+            if (asset == null) return null;
             var instance = doInstantiate(layerIndex, uuid, asset);
 
             var showComp = instance.GetComponent<IUIPanelShow>();

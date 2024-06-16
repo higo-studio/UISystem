@@ -56,5 +56,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "UISystem.sln"
+    "dotnet.defaultSolution": "UISystem.sln",
+    "diffEditor.codeLens": true
 }

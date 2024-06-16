@@ -1,9 +1,9 @@
 {
-    "name": "higo.ui-system",
+    "name": "higo.ui",
     "displayName": "Higo Studio's UI System",
     "version": "1.0.0",
     "unity": "2022.3",
-    "description": "Higo studio's UI System",
+    "description": "Stack-like ui system, make develop more easier!",
 	"dependencies": {
         "com.unity.ugui": "1.0.0"
     }
