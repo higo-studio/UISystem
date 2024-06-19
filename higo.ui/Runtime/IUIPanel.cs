@@ -2,7 +2,7 @@ namespace Higo.UI
 {
     public interface IUIPanelInit
     {
-        void OnInit(UIUUID uuid);
+        void OnInit(PanelInfo uuid);
     }
 
     public interface IUIPanelShow
@@ -12,7 +12,7 @@ namespace Higo.UI
 
     public interface IUIPanelHide
     {
-        void OnHide();
+        void OnHide(ref UIHideContext ctx);
     }
 
     public interface IUIPanelResume

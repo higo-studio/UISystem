@@ -8,7 +8,6 @@ using UnityEngine.UI;
 
 namespace Higo.UI
 {
-
     public class UISystem : MonoBehaviour
     {
         protected struct DelayCall
@@ -31,6 +30,7 @@ namespace Higo.UI
 
         protected static UISystem m_Instance;
         public static UISystem Instance => m_Instance;
+        public string PathPrefix = "";
 
         private void OnEnable()
         {
@@ -71,7 +71,7 @@ namespace Higo.UI
                 m_UUIDGenerator = 0;
                 m_Depth = 0;
                 m_DelayProcessingUIPanelDatas.Clear();
-                
+
                 var scene = SceneManager.GetActiveScene();
                 if (scene.isLoaded)
                 {
@@ -110,6 +110,19 @@ namespace Higo.UI
                 return false;
             }
             var layer = m_Layers[layerIndex];
+            if (path == null)
+            {
+                if (layer.Panels.Count > 0)
+                {
+                    uuid = layer.Panels[layer.Panels.Count - 1].UUID;
+                    return true;
+                }
+                else
+                {
+                    uuid = default;
+                    return false;
+                }
+            }
             var index = layer.Panels.FindIndex(x => x.Path == path);
             if (index < 0)
             {
@@ -166,8 +179,7 @@ namespace Higo.UI
                     Debug.Log($"OnPause: {d.UUID}, {d.Path}, {d.IsExclusive}");
                     if (m_Instances.TryGetValue(d.UUID, out var instance))
                     {
-                        var comp = instance.GetComponent<IUIPanelPause>();
-                        if (comp != null)
+                        foreach (var comp in instance.GetComponents<IUIPanelPause>())
                         {
                             comp.OnPause();
                         }
@@ -188,7 +200,7 @@ namespace Higo.UI
             LoadAsset(path);
             if (m_Loaded.TryGetValue(path, out var asset))
             {
-                doInstantiateWithOnShow(layerIndex, uuid, asset);
+                doInstantiateWithOnShow(layerIndex, data, asset);
             }
 
             Debug.Log($"OnShow: {uuid}, {path}, {isExclusive}");
@@ -202,7 +214,7 @@ namespace Higo.UI
             // request.completed += oper => CheckLoadingQueue(oper, path);
             // m_Loading.Add(path);
             m_Loading.Remove(path);
-            m_Loaded[path] = (GameObject)Resources.Load(path);
+            m_Loaded[path] = (GameObject)Resources.Load($"{PathPrefix}/{path}");
         }
 
         private void CheckLoadingQueue(AsyncOperation oper, string path)
@@ -218,33 +230,39 @@ namespace Higo.UI
                     foreach (var data in layer.Panels)
                     {
                         if (data.Path != path || data.State != UIPanelData.States.Shown) continue;
-                        doInstantiateWithOnShow(i, data.UUID, asset);
+                        doInstantiateWithOnShow(i, data, asset);
                     }
                 }
             }
         }
 
-        private GameObject doInstantiate(int layerIndex, UIUUID uuid, GameObject asset)
+        private GameObject doInstantiate(int layerIndex, UIPanelData data, GameObject asset)
         {
             if (asset == null) return null;
+
+            var uuid = data.UUID;
+
             var instance = Instantiate(asset, m_Layers[layerIndex].Root);
             m_Instances[uuid] = instance;
-            var initComp = instance.GetComponent<IUIPanelInit>();
-            if (initComp != null)
+            var panelInfo = new PanelInfo()
             {
-                initComp.OnInit(uuid);
+                Uuid = uuid,
+                Path = data.Path
+            };
+            foreach (var initComp in instance.GetComponents<IUIPanelInit>())
+            {
+                initComp.OnInit(panelInfo);
             }
 
             return instance;
         }
 
-        private GameObject doInstantiateWithOnShow(int layerIndex, UIUUID uuid, GameObject asset)
+        private GameObject doInstantiateWithOnShow(int layerIndex, UIPanelData data, GameObject asset)
         {
             if (asset == null) return null;
-            var instance = doInstantiate(layerIndex, uuid, asset);
+            var instance = doInstantiate(layerIndex, data, asset);
 
-            var showComp = instance.GetComponent<IUIPanelShow>();
-            if (showComp != null)
+            foreach (var showComp in instance.GetComponents<IUIPanelShow>())
             {
                 showComp.OnShow();
             }
@@ -275,7 +293,7 @@ namespace Higo.UI
             return true;
         }
 
-        public bool CloseUI(int layerIndex, string path)
+        public bool CloseUI(int layerIndex, string path = null)
             => TryFindUUID(layerIndex, path, out var uuid) && CloseUI(uuid);
 
         protected void InternalCloseUI(int layerIndex, int index)
@@ -289,12 +307,16 @@ namespace Higo.UI
 
             if (m_Instances.TryGetValue(data.UUID, out var removed))
             {
-                var comp = removed.GetComponent<IUIPanelHide>();
-                if (comp != null)
+                var ctx = new UIHideContext();
+                foreach (var comp in removed.GetComponents<IUIPanelHide>())
                 {
-                    comp.OnHide();
+                    comp.OnHide(ref ctx);
                 }
-                Destroy(removed);
+
+                if (!ctx.DontDestroy)
+                {
+                    Destroy(removed);
+                }
             }
 
             Debug.Log($"OnHide: {data.UUID}, {data.Path}, {data.IsExclusive}");
@@ -318,12 +340,11 @@ namespace Higo.UI
 
                     if (!m_Instances.TryGetValue(d.UUID, out var resumed) && m_Loaded.TryGetValue(d.Path, out var asset))
                     {
-                        doInstantiate(i, d.UUID, asset);
+                        doInstantiate(i, d, asset);
                     }
                     if (resumed != null)
                     {
-                        var comp1 = resumed.GetComponent<IUIPanelResume>();
-                        if (comp1 != null)
+                        foreach (var comp1 in resumed.GetComponents<IUIPanelResume>())
                         {
                             comp1.OnResume();
                         }
@@ -351,5 +372,13 @@ namespace Higo.UI
         }
 
         protected virtual void onPostUIChanged() { }
+
+        public void DestroyUI(UIUUID uuid)
+        {
+            if (TryGetUI(uuid, out var go))
+            {
+                Destroy(go);
+            }
+        }
     }
 }

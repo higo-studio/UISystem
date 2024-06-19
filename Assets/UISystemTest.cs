@@ -4,14 +4,16 @@ using UnityEngine.Assertions;
 
 public enum UILayers
 {
-    Base
+    Base,
+    Dialog,
+    Overlap,
 }
 
 public static class UISystemExtension
 {
     public static UIUUID OpenUI(this UISystem @this, UILayers layer, string name, bool isExclusive = true)
         => @this.OpenUI((int)layer, name, isExclusive);
-    public static void CloseUI(this UISystem @this, UILayers layer, string name)
+    public static void CloseUI(this UISystem @this, UILayers layer, string name = null)
         => @this.CloseUI((int)layer, name);
 }
 
@@ -31,5 +33,8 @@ public class UISystemTest : MonoBehaviour
         uiSys.CloseUI(euuid);
         uiSys.CloseUI(duuid);
         uiSys.CloseUI(UILayers.Base, "c");
+
+        uiSys.PathPrefix = "UI";
+        uiSys.OpenUI(UILayers.Base, "MainUI", false);
     }
 }
