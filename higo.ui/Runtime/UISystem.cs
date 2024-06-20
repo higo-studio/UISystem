@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.EventSystems;
+using UnityEngine.Pool;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -46,17 +47,23 @@ namespace Higo.UI
         {
             if (m_Instance == null)
             {
+                m_Instance = this;
+                DontDestroyOnLoad(m_Instance.gameObject);
+
                 var childCount = transform.childCount;
                 for (var i = 0; i < childCount; i++)
                 {
                     var child = transform.GetChild(i);
-                    m_Layers.Add(new()
+                    var data = new UILayerData()
                     {
                         Root = child
-                    });
+                    };
+                    m_Layers.Add(data);
+                    if (child.TryGetComponent<IUILayer>(out var layerC))
+                    {
+                        layerC.Init(i);
+                    }
                 }
-                m_Instance = this;
-                DontDestroyOnLoad(m_Instance.gameObject);
             }
         }
 
@@ -165,8 +172,10 @@ namespace Higo.UI
         protected void InternalOpenUI(int layerIndex, UIUUID uuid, string path, bool isExclusive)
         {
             var layer = m_Layers[layerIndex];
+            var layerController = layer.Root.GetComponent<IUILayer>();
             if (isExclusive)
             {
+                var pauseList = ListPool<PanelInfo>.Get();
                 var i = layer.Panels.Count - 1;
                 while (i >= 0)
                 {
@@ -176,18 +185,27 @@ namespace Higo.UI
                     layer.Panels[i] = d;
                     i--;
 
-                    Debug.Log($"OnPause: {d.UUID}, {d.Path}, {d.IsExclusive}");
                     if (m_Instances.TryGetValue(d.UUID, out var instance))
                     {
+                        var ctx = new UIPauseContext();
                         foreach (var comp in instance.GetComponents<IUIPanelPause>())
                         {
-                            comp.OnPause();
+                            comp.OnPause(ref ctx);
                         }
                     }
+                    pauseList.Add(new PanelInfo()
+                    {
+                        Uuid = d.UUID,
+                        Path = d.Path
+                    });
                     if (d.IsExclusive) break;
                 }
+                if (layerController != null)
+                    layerController.OnPanelPause(pauseList);
+                ListPool<PanelInfo>.Release(pauseList);
             }
 
+            var showList = ListPool<PanelInfo>.Get();
             var data = new UIPanelData()
             {
                 UUID = uuid,
@@ -196,6 +214,11 @@ namespace Higo.UI
                 State = UIPanelData.States.Shown,
             };
             layer.Panels.Add(data);
+            showList.Add(new PanelInfo()
+            {
+                Uuid = uuid,
+                Path = path
+            });
 
             LoadAsset(path);
             if (m_Loaded.TryGetValue(path, out var asset))
@@ -203,8 +226,9 @@ namespace Higo.UI
                 doInstantiateWithOnShow(layerIndex, data, asset);
             }
 
-            Debug.Log($"OnShow: {uuid}, {path}, {isExclusive}");
-            onPostUIChanged();
+            if (layerController != null)
+                layerController.OnPanelShow(showList);
+            ListPool<PanelInfo>.Release(showList);
         }
 
         private void LoadAsset(string path)
@@ -298,13 +322,14 @@ namespace Higo.UI
 
         protected void InternalCloseUI(int layerIndex, int index)
         {
-            var layer = m_Layers[layerIndex];
             if (index < 0) return;
+            var layer = m_Layers[layerIndex];
+            var layerController = layer.Root.GetComponent<IUILayer>();
             var data = layer.Panels[index];
-            var previous = data.State;
             data.State = UIPanelData.States.Hided;
             layer.Panels.RemoveAt(index);
 
+            var hideList = ListPool<PanelInfo>.Get();
             if (m_Instances.TryGetValue(data.UUID, out var removed))
             {
                 var ctx = new UIHideContext();
@@ -317,10 +342,17 @@ namespace Higo.UI
                 {
                     Destroy(removed);
                 }
+                hideList.Add(new PanelInfo()
+                {
+                    Uuid = data.UUID,
+                    Path = data.Path,
+                });
             }
+            if (layerController != null)
+                layerController.OnPanelHide(hideList);
+            ListPool<PanelInfo>.Release(hideList);
 
-            Debug.Log($"OnHide: {data.UUID}, {data.Path}, {data.IsExclusive}");
-
+            var resumeList = ListPool<PanelInfo>.Get();
             if (data.IsExclusive && index > 0)
             {
                 var start = index - 1;
@@ -348,11 +380,18 @@ namespace Higo.UI
                         {
                             comp1.OnResume();
                         }
+
                     }
+                    resumeList.Add(new PanelInfo()
+                    {
+                        Uuid = d.UUID,
+                        Path = d.Path
+                    });
                 }
             }
-
-            onPostUIChanged();
+            if (layerController != null)
+                layerController.OnPanelResume(resumeList);
+            ListPool<PanelInfo>.Release(resumeList);
         }
 
         protected void HandleDelayCalls()
@@ -379,6 +418,12 @@ namespace Higo.UI
             {
                 Destroy(go);
             }
+        }
+
+        public IReadOnlyUILayerData GetLayer(int layerIndex)
+        {
+            if (layerIndex >= m_Layers.Count) return null;
+            return m_Layers[layerIndex];
         }
     }
 }

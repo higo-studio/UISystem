@@ -10,4 +10,9 @@ namespace Higo.UI
     {
         public bool DontDestroy;
     }
+
+    public struct UIPauseContext
+    {
+        // public bool DontDestroy;
+    }
 }

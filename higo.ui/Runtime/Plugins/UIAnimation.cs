@@ -106,7 +106,7 @@ namespace Higo.UI
             m_PlayableGraph.Play();
         }
 
-        public void OnPause()
+        public void OnPause(ref UIPauseContext ctx)
         {
             selectClip(3);
             m_PlayableGraph.Play();

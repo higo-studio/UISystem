@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0504459f512c4dc40ad106bbab4cc787, type: 3}
   m_Name: UISystemSettings
   m_EditorClassIdentifier: 
-  Prefab: {fileID: 9103658881877390172, guid: f2d5518e929fc0c4ab46dc1a64ef72d5, type: 3}
+  Prefab: {fileID: 9103658881877390172, guid: 1bddc4abee5a9a64fbec9a708d8bddb9, type: 3}
