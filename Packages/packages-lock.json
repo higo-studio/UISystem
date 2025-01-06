@@ -99,7 +99,7 @@
       }
     },
     "higo.ui": {
-      "version": "file:../higo.ui",
+      "version": "file:../UISystem",
       "depth": 0,
       "source": "local",
       "dependencies": {
