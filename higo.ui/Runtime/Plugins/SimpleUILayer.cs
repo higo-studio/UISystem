@@ -23,7 +23,7 @@ public class SimpleUILayer : MonoBehaviour, IUILayer, ICancelHandler
 
     protected void OnMaskClick()
     {
-        UISystem.Instance.CloseUI(m_LayerIndex);
+        UISystem.Instance.Hide(m_LayerIndex);
     }
 
     public void Init(int layerIndex)
@@ -63,7 +63,7 @@ public class SimpleUILayer : MonoBehaviour, IUILayer, ICancelHandler
         var layer = Layer;
         if (layer.Panels.Count > 0)
         {
-            UIS.CloseUI(m_LayerIndex);
+            UIS.Hide(m_LayerIndex);
         }
     }
 }

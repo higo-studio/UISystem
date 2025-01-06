@@ -14,19 +14,19 @@ public class UISystemTest : MonoBehaviour
     void Awake()
     {
         var uiSys = UISystem.Instance;
-        var auuid = uiSys.OpenUI(UILayers.Base, "a", true);
-        var buuid = uiSys.OpenUI(UILayers.Base, "b", false);
-        var cuuid = uiSys.OpenUI(UILayers.Base, "c", true);
-        var duuid = uiSys.OpenUI(UILayers.Base, "d", false);
-        var euuid = uiSys.OpenUI(UILayers.Base, "e", true);
+        var auuid = uiSys.Show(UILayers.Base, "a", true);
+        var buuid = uiSys.Show(UILayers.Base, "b", false);
+        var cuuid = uiSys.Show(UILayers.Base, "c", true);
+        var duuid = uiSys.Show(UILayers.Base, "d", false);
+        var euuid = uiSys.Show(UILayers.Base, "e", true);
 
-        uiSys.CloseUI(buuid);
-        uiSys.CloseUI(auuid);
-        uiSys.CloseUI(euuid);
-        uiSys.CloseUI(duuid);
-        uiSys.CloseUI(UILayers.Base, "c");
+        uiSys.Hide(buuid);
+        uiSys.Hide(auuid);
+        uiSys.Hide(euuid);
+        uiSys.Hide(duuid);
+        uiSys.Hide(UILayers.Base, "c");
 
         uiSys.PathPrefix = "UI";
-        uiSys.OpenUI(UILayers.Base, "MainUI", false);
+        uiSys.Show(UILayers.Base, "MainUI", false);
     }
 }

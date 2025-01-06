@@ -105,7 +105,8 @@ namespace Higo.UI
             m_Instance.register();
         }
 
-        public bool TryFindUUID(int layerIndex, string path, out Uuid uuid)
+        #region Public Methods
+        public bool TryGetTop(int layerIndex, string path, out Uuid uuid)
         {
             if (layerIndex < 0 || layerIndex >= m_Layers.Count)
             {
@@ -138,7 +139,7 @@ namespace Higo.UI
 
         public bool TryGetUI(Uuid uuid, out GameObject go) => m_Instances.TryGetValue(uuid, out go);
 
-        public Uuid OpenUI(int layerIndex, string path, bool isExclusive = true)
+        public Uuid Show(int layerIndex, string path, bool isExclusive = true)
         {
             Assert.IsTrue(m_Depth >= 0);
             Assert.IsTrue(layerIndex >= 0 && layerIndex < m_Layers.Count);
@@ -164,6 +165,49 @@ namespace Higo.UI
 
             return uuid;
         }
+        
+        public bool Hide(Uuid uuid)
+        {
+            Assert.IsTrue(m_Depth >= 0);
+            var layer = m_Layers[uuid.LayerIndex];
+            var index = layer.Panels.FindIndex(x => x.UUID == uuid);
+            if (index < 0) return false;
+
+            if (m_Depth > 0)
+            {
+                m_DelayProcessingUIPanelDatas.Enqueue(new DelayCall()
+                {
+                    IsOpen = false,
+                    Uuid = uuid,
+                });
+                return true;
+            }
+            m_Depth++;
+            InternalCloseUI(uuid.LayerIndex, index);
+            m_Depth--;
+            if (m_Depth == 0)
+                HandleDelayCalls();
+            return true;
+        }
+
+        public bool Hide(int layerIndex, string path = null)
+            => TryGetTop(layerIndex, path, out var uuid) && Hide(uuid);
+        
+        public void Destroy(Uuid uuid)
+        {
+            if (TryGetUI(uuid, out var go))
+            {
+                Destroy(go);
+            }
+        }
+
+        public IReadOnlyUILayerData GetLayer(int layerIndex)
+        {
+            if (layerIndex >= m_Layers.Count) return null;
+            return m_Layers[layerIndex];
+        }
+        
+        #endregion
 
         protected void InternalOpenUI(int layerIndex, Uuid uuid, string path, bool isExclusive)
         {
@@ -289,33 +333,6 @@ namespace Higo.UI
             return instance;
         }
 
-        public bool CloseUI(Uuid uuid)
-        {
-            Assert.IsTrue(m_Depth >= 0);
-            var layer = m_Layers[uuid.LayerIndex];
-            var index = layer.Panels.FindIndex(x => x.UUID == uuid);
-            if (index < 0) return false;
-
-            if (m_Depth > 0)
-            {
-                m_DelayProcessingUIPanelDatas.Enqueue(new DelayCall()
-                {
-                    IsOpen = false,
-                    Uuid = uuid,
-                });
-                return true;
-            }
-            m_Depth++;
-            InternalCloseUI(uuid.LayerIndex, index);
-            m_Depth--;
-            if (m_Depth == 0)
-                HandleDelayCalls();
-            return true;
-        }
-
-        public bool CloseUI(int layerIndex, string path = null)
-            => TryFindUUID(layerIndex, path, out var uuid) && CloseUI(uuid);
-
         protected void InternalCloseUI(int layerIndex, int index)
         {
             if (index < 0) return;
@@ -397,29 +414,15 @@ namespace Higo.UI
             {
                 if (data.IsOpen)
                 {
-                    OpenUI(data.LayerIndex, data.Path, data.IsExclusive);
+                    Show(data.LayerIndex, data.Path, data.IsExclusive);
                 }
                 else
                 {
-                    CloseUI(data.Uuid);
+                    Hide(data.Uuid);
                 }
             }
         }
 
         protected virtual void onPostUIChanged() { }
-
-        public void DestroyUI(Uuid uuid)
-        {
-            if (TryGetUI(uuid, out var go))
-            {
-                Destroy(go);
-            }
-        }
-
-        public IReadOnlyUILayerData GetLayer(int layerIndex)
-        {
-            if (layerIndex >= m_Layers.Count) return null;
-            return m_Layers[layerIndex];
-        }
     }
 }

@@ -24,6 +24,6 @@ public class PopupUI : MonoBehaviour, IUIPanelShow
 
     public void Close()
     {
-        UISystem.Instance.CloseUI(UILayers.Dialog);
+        UISystem.Instance.Hide(UILayers.Dialog);
     }
 }

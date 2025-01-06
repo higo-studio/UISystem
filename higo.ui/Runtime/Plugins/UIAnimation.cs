@@ -42,7 +42,7 @@ namespace Higo.UI
             if (m_DestroyRequestedAfterDone && m_PlayableGraph.IsValid() && m_PlayableGraph.IsDone())
             {
                 m_DestroyRequestedAfterDone = false;
-                UISystem.Instance.DestroyUI(m_PanelInfo.Uuid);
+                UISystem.Instance.Destroy(m_PanelInfo.Uuid);
             }
         }
 
