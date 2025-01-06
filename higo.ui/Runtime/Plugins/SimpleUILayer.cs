@@ -1,13 +1,15 @@
 using System.Collections.Generic;
 using Higo.UI;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class SimpleUILayer : MonoBehaviour, IUILayer
+public class SimpleUILayer : MonoBehaviour, IUILayer, ICancelHandler
 {
     protected int m_LayerIndex;
     public Button Mask;
-    public IReadOnlyUILayerData Layer => UISystem.Instance.GetLayer(m_LayerIndex);
+    public IReadOnlyUILayerData Layer => UIS.GetLayer(m_LayerIndex);
+    public UISystem UIS => UISystem.Instance;
 
     protected void OnEnable()
     {
@@ -53,6 +55,15 @@ public class SimpleUILayer : MonoBehaviour, IUILayer
         if (Mask.gameObject.activeSelf != enabled)
         {
             Mask.gameObject.SetActive(enabled);
+        }
+    }
+
+    public void OnCancel(BaseEventData eventData)
+    {
+        var layer = Layer;
+        if (layer.Panels.Count > 0)
+        {
+            UIS.CloseUI(m_LayerIndex);
         }
     }
 }

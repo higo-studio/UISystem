@@ -10,6 +10,6 @@ namespace Higo.UI
         public string Path;
         public States State;
         public bool IsExclusive;
-        public UIUUID UUID;
+        public Uuid UUID;
     }
 }

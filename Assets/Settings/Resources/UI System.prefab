@@ -168,6 +168,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   PathPrefix: 
+  EscBindKey: 27
 --- !u!1 &3674219964376454574
 GameObject:
   m_ObjectHideFlags: 0

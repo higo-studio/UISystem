@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -13,26 +12,24 @@ namespace Higo.UI
     {
         protected struct DelayCall
         {
-            public bool isOpen;
-            public string path;
-            public bool isExclusive;
-            public UIUUID uuid;
-            public int layerIndex;
+            public bool IsOpen;
+            public string Path;
+            public bool IsExclusive;
+            public Uuid Uuid;
+            public int LayerIndex;
         }
 
-        protected List<UILayerData> m_Layers = new();
+        protected UnsafeList<UILayerData> m_Layers = new();
         protected Queue<DelayCall> m_DelayProcessingUIPanelDatas = new();
-        protected Dictionary<UIUUID, GameObject> m_Instances = new();
+        protected Dictionary<Uuid, GameObject> m_Instances = new();
         protected Dictionary<string, GameObject> m_Loaded = new();
         protected HashSet<string> m_Loading = new();
-        protected int m_UUIDGenerator = 1;
 
         protected int m_Depth = 0;
 
         protected static UISystem m_Instance;
         public static UISystem Instance => m_Instance;
         public string PathPrefix = "";
-
         private void OnEnable()
         {
             register();
@@ -75,7 +72,6 @@ namespace Higo.UI
                 m_Instances.Clear();
                 m_Loaded.Clear();
                 m_Loading.Clear();
-                m_UUIDGenerator = 0;
                 m_Depth = 0;
                 m_DelayProcessingUIPanelDatas.Clear();
 
@@ -109,7 +105,7 @@ namespace Higo.UI
             m_Instance.register();
         }
 
-        public bool TryFindUUID(int layerIndex, string path, out UIUUID uuid)
+        public bool TryFindUUID(int layerIndex, string path, out Uuid uuid)
         {
             if (layerIndex < 0 || layerIndex >= m_Layers.Count)
             {
@@ -140,23 +136,23 @@ namespace Higo.UI
             return true;
         }
 
-        public bool TryGetUI(UIUUID uuid, out GameObject go) => m_Instances.TryGetValue(uuid, out go);
+        public bool TryGetUI(Uuid uuid, out GameObject go) => m_Instances.TryGetValue(uuid, out go);
 
-        public UIUUID OpenUI(int layerIndex, string path, bool isExclusive = true)
+        public Uuid OpenUI(int layerIndex, string path, bool isExclusive = true)
         {
             Assert.IsTrue(m_Depth >= 0);
             Assert.IsTrue(layerIndex >= 0 && layerIndex < m_Layers.Count);
-            var layer = m_Layers[layerIndex];
-            var uuid = new UIUUID(layerIndex, layer.UUIDGenerator++);
+            ref var layer = ref m_Layers.ElementAt(layerIndex);
+            var uuid = new Uuid(layerIndex, layer.UUIDGenerator++);
             if (m_Depth > 0)
             {
                 m_DelayProcessingUIPanelDatas.Enqueue(new DelayCall()
                 {
-                    isOpen = true,
-                    path = path,
-                    isExclusive = isExclusive,
-                    uuid = uuid,
-                    layerIndex = layerIndex,
+                    IsOpen = true,
+                    Path = path,
+                    IsExclusive = isExclusive,
+                    Uuid = uuid,
+                    LayerIndex = layerIndex,
                 });
                 return uuid;
             }
@@ -169,7 +165,7 @@ namespace Higo.UI
             return uuid;
         }
 
-        protected void InternalOpenUI(int layerIndex, UIUUID uuid, string path, bool isExclusive)
+        protected void InternalOpenUI(int layerIndex, Uuid uuid, string path, bool isExclusive)
         {
             var layer = m_Layers[layerIndex];
             var layerController = layer.Root.GetComponent<IUILayer>();
@@ -234,9 +230,9 @@ namespace Higo.UI
         private void LoadAsset(string path)
         {
             if (m_Loading.Contains(path) || m_Loaded.ContainsKey(path)) return;
-            // var request = Resources.LoadAsync(path);
-            // request.completed += oper => CheckLoadingQueue(oper, path);
-            // m_Loading.Add(path);
+            var request = Resources.LoadAsync(path);
+            request.completed += oper => CheckLoadingQueue(oper, path);
+            m_Loading.Add(path);
             m_Loading.Remove(path);
             m_Loaded[path] = (GameObject)Resources.Load($"{PathPrefix}/{path}");
         }
@@ -293,7 +289,7 @@ namespace Higo.UI
             return instance;
         }
 
-        public bool CloseUI(UIUUID uuid)
+        public bool CloseUI(Uuid uuid)
         {
             Assert.IsTrue(m_Depth >= 0);
             var layer = m_Layers[uuid.LayerIndex];
@@ -304,8 +300,8 @@ namespace Higo.UI
             {
                 m_DelayProcessingUIPanelDatas.Enqueue(new DelayCall()
                 {
-                    isOpen = false,
-                    uuid = uuid,
+                    IsOpen = false,
+                    Uuid = uuid,
                 });
                 return true;
             }
@@ -399,20 +395,20 @@ namespace Higo.UI
             if (m_DelayProcessingUIPanelDatas == null || m_DelayProcessingUIPanelDatas.Count == 0) return;
             while (m_DelayProcessingUIPanelDatas.TryDequeue(out var data))
             {
-                if (data.isOpen)
+                if (data.IsOpen)
                 {
-                    OpenUI(data.layerIndex, data.path, data.isExclusive);
+                    OpenUI(data.LayerIndex, data.Path, data.IsExclusive);
                 }
                 else
                 {
-                    CloseUI(data.uuid);
+                    CloseUI(data.Uuid);
                 }
             }
         }
 
         protected virtual void onPostUIChanged() { }
 
-        public void DestroyUI(UIUUID uuid)
+        public void DestroyUI(Uuid uuid)
         {
             if (TryGetUI(uuid, out var go))
             {

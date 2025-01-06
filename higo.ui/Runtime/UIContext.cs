@@ -2,7 +2,7 @@ namespace Higo.UI
 {
     public struct PanelInfo
     {
-        public UIUUID Uuid;
+        public Uuid Uuid;
         public string Path;
     }
 

@@ -24,6 +24,6 @@ public class MainUI : MonoBehaviour, IUIPanelShow
 
     public void OpenPopup()
     {
-        UISystem.Instance.OpenUI(UILayers.Dialog, "PopupUI");
+        Debug.Log(UISystem.Instance.OpenUI(UILayers.Dialog, "PopupUI"));
     }
 }

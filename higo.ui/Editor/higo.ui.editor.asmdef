@@ -1,12 +1,12 @@
 {
-    "name": "higo.ui.editor",
+    "name": "Higo.UI.Editor",
     "rootNamespace": "",
     "references": [
         "GUID:57373615301119745a2df2f51217c706"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
